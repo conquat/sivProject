@@ -12,7 +12,7 @@ mic_array_dim = (5, 5)
 mic_spacing = (0.3, 0.3)
 scan_plane_size = (8.0, 8.0)
 
-SR = 22050
+SAMPLE_RATE = 22050
 violin = librosa.load('audio/violin_c.wav')[0]
 hz440 = librosa.load('audio/hz440.wav')[0]
 noise = librosa.load('audio/noise.wav')[0]
@@ -23,8 +23,8 @@ hz1000 = librosa.load('audio/beep-sound-of-1000-hz-95208.mp3')[0]
 def get_delay(a, b):
     return np.linalg.norm(a - b) / SOUND_SPEED
 
-def freq_to_index(freq, spectrum_size, SR):
-    return int(freq / SR * spectrum_size)
+def freq_to_index(freq, spectrum_size, SAMPLE_RATE):
+    return int(freq / SAMPLE_RATE * spectrum_size)
 
 def hermite(a):
     return np.conj(np.transpose(a))
@@ -55,7 +55,7 @@ def get_spectrums(sources, microphone_positions, start_index, sample_length):
         sounds = []
         for position, track in sources:
             time_delay = get_delay(TARGET_GRID_CENTER + np.append(position, 0.0), mic_pos)
-            index_delay = int(time_delay * SR)
+            index_delay = int(time_delay * SAMPLE_RATE)
             sounds.append(track[start_index + index_delay:start_index + index_delay + sample_length])
         recorded_sound = sum(sounds)
         coeff = np.sqrt(np.average(recorded_sound**2)) * 10.0
@@ -70,16 +70,16 @@ sources = [
 ]
 
 sample_duration = 0.2
-sample_length = int(sample_duration * SR)
+sample_length = int(sample_duration * SAMPLE_RATE)
 start_time = 0.0
-start_index = int(start_time * SR)
+start_index = int(start_time * SAMPLE_RATE)
 
 
 spectrums = get_spectrums(sources, microphone_positions, start_index, sample_length)
 
 
 test_freq = 1000
-freq_index = freq_to_index(test_freq, sample_length, SR)
+freq_index = freq_to_index(test_freq, sample_length, SAMPLE_RATE)
 test_freq_intensisies = np.array([spectrum[freq_index] for spectrum in spectrums]).reshape(len(spectrums), 1)
 csm = test_freq_intensisies @ np.conj(np.transpose(test_freq_intensisies))
 
@@ -155,13 +155,10 @@ for l in progressbar(range(10)):
 def show_mat(mat):
     im = PIL.Image.new(mode="RGB", size=IMAGE_DIM, color=(0, 0, 0))
     mat_abs = abs(mat)
-    mat_max = max(mat_abs)
-    correction = 255 / mat_max
-    print(correction)
-    print("start")
+    norm = 255 / max(mat_abs)
     for i in range(IMAGE_DIM[1]):
         for j in range(IMAGE_DIM[0]):
-            val = mat_abs[i * IMAGE_DIM[1] + j] * correction
+            val = mat_abs[i * IMAGE_DIM[1] + j] * norm
             im.putpixel((j, i), (abs(int(val.real * 0)), abs(int(val.imag * 0)), int(val)))
     im.show()
 
